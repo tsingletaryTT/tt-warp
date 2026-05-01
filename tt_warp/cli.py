@@ -18,24 +18,55 @@ from tt_mcp.knowledge.db import KnowledgeDB
 from tt_mcp.knowledge.sync import sync_lessons
 
 _TT_WARP_DIR = Path("~/.tt-warp").expanduser()
-_WARP_DIR = Path("~/.warp").expanduser()
 _SKILLS_SRC = Path(__file__).parent.parent / "skills"
 _SHELL_SRC = Path(__file__).parent.parent / "shell" / "tt-warprc"
 
+# Map Warp channel binary names to their config directory names.
+# Stable and Preview share ~/.warp; OSS/Dev/Local use suffixed directories.
+_WARP_CHANNEL_BINS: dict[str, str] = {
+    "warp":         ".warp",
+    "warp-oss":     ".warp-oss",
+    "warp-dev":     ".warp-dev",
+    "warp-preview": ".warp",
+}
+
+
+def _warp_dirs() -> list[Path]:
+    """Return config dirs for every Warp channel binary found in PATH.
+
+    Always includes ~/.warp as the baseline. Deduplicates so stable and
+    preview (which share the same dir) only appear once.
+    """
+    home = Path.home()
+    seen: set[Path] = set()
+    dirs: list[Path] = []
+    for binary, dirname in _WARP_CHANNEL_BINS.items():
+        if shutil.which(binary):
+            d = home / dirname
+            if d not in seen:
+                seen.add(d)
+                dirs.append(d)
+    # Always include the baseline dir even if no binary was found.
+    baseline = home / ".warp"
+    if baseline not in seen:
+        dirs.append(baseline)
+    return dirs
+
 
 def _write_mcp_config() -> None:
-    mcp_path = _WARP_DIR / ".mcp.json"
-    _WARP_DIR.mkdir(parents=True, exist_ok=True)
-    config = {}
-    if mcp_path.exists():
-        try:
-            config = json.loads(mcp_path.read_text())
-        except json.JSONDecodeError:
-            pass
-    servers = config.setdefault("mcpServers", {})
-    servers["tt-hardware"] = {"command": "tt-mcp-server", "env": {}}
-    mcp_path.write_text(json.dumps(config, indent=2))
-    click.echo(f"  ✓ MCP config written to {mcp_path}")
+    for warp_dir in _warp_dirs():
+        mcp_path = warp_dir / ".mcp.json"
+        warp_dir.mkdir(parents=True, exist_ok=True)
+        config = {}
+        if mcp_path.exists():
+            try:
+                config = json.loads(mcp_path.read_text())
+            except json.JSONDecodeError:
+                pass
+        servers = config.setdefault("mcpServers", {})
+        servers["tt-hardware"] = {"command": "tt-mcp-server", "env": {}}
+        mcp_path.write_text(json.dumps(config, indent=2))
+        click.echo(f"  ✓ MCP config written to {mcp_path}")
 
 
 def _wire_shell_hooks() -> None:
@@ -53,9 +84,11 @@ def _wire_shell_hooks() -> None:
 
 
 def _install_skills() -> None:
-    skills_dir = _WARP_DIR / "skills"
-    skills_dir.mkdir(parents=True, exist_ok=True)
-    if _SKILLS_SRC.exists():
+    if not _SKILLS_SRC.exists():
+        return
+    for warp_dir in _warp_dirs():
+        skills_dir = warp_dir / "skills"
+        skills_dir.mkdir(parents=True, exist_ok=True)
         for skill_file in _SKILLS_SRC.glob("*.md"):
             shutil.copy(skill_file, skills_dir / skill_file.name)
         click.echo(f"  ✓ Skills installed to {skills_dir}")
