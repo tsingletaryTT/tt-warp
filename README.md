@@ -8,11 +8,32 @@ A [Warp](https://www.warp.dev/) plugin that makes Tenstorrent hardware a first-c
 
 ### Warp terminal
 
-tt-warp is a Warp plugin. You need Warp installed and running.
+tt-warp is a Warp plugin. You need Warp installed and running. Linux only — same constraint as TT hardware.
 
-- Download: https://www.warp.dev/
-- Supported: Linux (same constraint as TT hardware)
-- Warp must have **AI features enabled** — the MCP server and skills only activate inside a Warp agent session
+**Debian / Ubuntu:**
+```bash
+sudo apt-get install wget gpg
+wget -qO- https://releases.warp.dev/linux/keys/warp.asc | gpg --dearmor > warpdotdev.gpg
+sudo install -D -o root -g root -m 644 warpdotdev.gpg /etc/apt/keyrings/warpdotdev.gpg
+sudo sh -c 'echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/warpdotdev.gpg] https://releases.warp.dev/linux/deb stable main" > /etc/apt/sources.list.d/warpdotdev.list'
+rm warpdotdev.gpg
+sudo apt update && sudo apt install warp-terminal
+```
+
+**Fedora / RHEL / CentOS:**
+```bash
+sudo rpm --import https://releases.warp.dev/linux/keys/warp.asc
+sudo sh -c 'echo -e "[warpdotdev]\nname=warpdotdev\nbaseurl=https://releases.warp.dev/linux/rpm/stable\nenabled=1\ngpgcheck=1\ngpgkey=https://releases.warp.dev/linux/keys/warp.asc" > /etc/yum.repos.d/warpdotdev.repo'
+sudo dnf install warp-terminal
+```
+
+**Arch Linux:**
+```bash
+sudo pacman -U ./<file>.pkg.tar.zst
+```
+Download the `.pkg.tar.zst` from [warp.dev/download](https://www.warp.dev/download) first.
+
+Warp requires glibc >= 2.31 and OpenGL ES 3.0+ or Vulkan. After installing, open Warp and make sure **AI features are enabled** — the MCP server and skills only activate inside a Warp agent session.
 
 ### Tenstorrent hardware
 
