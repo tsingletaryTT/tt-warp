@@ -35,7 +35,16 @@ Download the `.pkg.tar.zst` from [warp.dev/download](https://www.warp.dev/downlo
 
 Warp requires glibc >= 2.31 and OpenGL ES 3.0+ or Vulkan.
 
-**First launch requires a Warp account.** Sign up is free at [warp.dev](https://www.warp.dev). There is no build-from-source path that bypasses this — the terminal client is not yet open source. After signing in, make sure **AI features are enabled** in Settings — the MCP server and skills only activate inside a Warp agent session.
+**First launch requires a Warp account.** Sign up is free at [warp.dev](https://www.warp.dev). After signing in, make sure **AI features are enabled** in Settings — the MCP server and skills only activate inside a Warp agent session.
+
+**Building from source** (Warp went open source April 2026 under AGPL-3.0):
+```bash
+git clone https://github.com/warpdotdev/warp
+cd warp
+./script/bootstrap   # installs build and runtime deps
+cargo build --release --bin warp-oss
+```
+Whether a source build still requires a Warp account at first launch is not yet fully documented — the FAQ notes some features run fully locally while cloud features (Drive, hosted agents) require Warp's backend.
 
 ### Tenstorrent hardware
 
