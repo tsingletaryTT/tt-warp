@@ -60,6 +60,16 @@ python3 --version   # must be 3.11 or newer
 
 ## Install
 
+### From PyPI (recommended)
+
+```bash
+pip install tt-warp
+tt-warp install
+tt-warp sync
+```
+
+### From source
+
 ```bash
 git clone https://github.com/tenstorrent/tt-warp ~/code/tt-warp
 cd ~/code/tt-warp
@@ -67,6 +77,10 @@ pip install -e .
 tt-warp install
 tt-warp sync
 ```
+
+Use the from-source path if you want to contribute, modify behavior, or run unreleased changes. `pip install -e .` installs in editable mode so edits to the source take effect immediately without reinstalling.
+
+---
 
 `tt-warp install` does three things:
 - Registers `tt-hardware` in `~/.warp/.mcp.json` so any Warp agent session can call TT tools
