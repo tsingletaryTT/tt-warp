@@ -53,7 +53,19 @@ def _warp_dirs() -> list[Path]:
     return dirs
 
 
+def _mcp_server_command() -> str:
+    """Return the absolute path to tt-mcp-server, falling back to the bare name.
+
+    Warp spawns MCP servers without inheriting the user's full PATH, so a bare
+    command name only works if tt-mcp-server is in a system directory.  Prefer
+    the absolute path so the correct virtualenv binary is always used.
+    """
+    cmd = shutil.which("tt-mcp-server")
+    return cmd if cmd else "tt-mcp-server"
+
+
 def _write_mcp_config() -> None:
+    command = _mcp_server_command()
     for warp_dir in _warp_dirs():
         mcp_path = warp_dir / ".mcp.json"
         warp_dir.mkdir(parents=True, exist_ok=True)
@@ -64,7 +76,7 @@ def _write_mcp_config() -> None:
             except json.JSONDecodeError:
                 pass
         servers = config.setdefault("mcpServers", {})
-        servers["tt-hardware"] = {"command": "tt-mcp-server", "env": {}}
+        servers["tt-hardware"] = {"command": command, "env": {}}
         mcp_path.write_text(json.dumps(config, indent=2))
         click.echo(f"  ✓ MCP config written to {mcp_path}")
 
@@ -89,8 +101,11 @@ def _install_skills() -> None:
     for warp_dir in _warp_dirs():
         skills_dir = warp_dir / "skills"
         skills_dir.mkdir(parents=True, exist_ok=True)
+        # Warp loads skills from <skills_dir>/<name>/SKILL.md subdirectories.
         for skill_file in _SKILLS_SRC.glob("*.md"):
-            shutil.copy(skill_file, skills_dir / skill_file.name)
+            skill_subdir = skills_dir / skill_file.stem
+            skill_subdir.mkdir(parents=True, exist_ok=True)
+            shutil.copy(skill_file, skill_subdir / "SKILL.md")
         click.echo(f"  ✓ Skills installed to {skills_dir}")
 
 
