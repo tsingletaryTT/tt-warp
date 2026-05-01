@@ -34,6 +34,7 @@ def test_sync_lessons_indexes_content(tmp_path):
     assert len(results) >= 1
     assert results[0]["lesson_id"] == "hardware-detection"
     assert results[0]["status"] == "validated"
+    assert db.last_sync_timestamp() is not None
     db.close()
 
 

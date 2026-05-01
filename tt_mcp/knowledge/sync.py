@@ -194,8 +194,12 @@ def sync_lessons(db: KnowledgeDB, timeout: int = _TIMEOUT) -> int:
         synced += 1
 
     # ------------------------------------------------------------------
-    # Step 3: Record sync timestamp so callers can check staleness
+    # Step 3: Record sync timestamp so callers can check staleness.
+    # Only set the timestamp when at least one lesson was successfully
+    # indexed — setting it when synced == 0 would mislead callers into
+    # thinking a fresh, successful sync had occurred.
     # ------------------------------------------------------------------
-    db.set_sync_timestamp(time.time())
+    if synced > 0:
+        db.set_sync_timestamp(time.time())
 
     return synced
