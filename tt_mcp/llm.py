@@ -84,7 +84,7 @@ class LLMState:
         Mirrors the same logic as active_url so callers don't need to
         reconstruct which URL → which model themselves.
         """
-        if self.hardware_busy and self.fallback_model:
+        if self.hardware_busy and self.fallback_url:   # mirror active_url guard
             return self.fallback_model
         return self.primary_model or self.fallback_model
 
@@ -118,12 +118,12 @@ class LLMState:
     def to_dict(self) -> dict:
         """Return a plain-dict snapshot suitable for JSON serialisation."""
         return {
-            "primary": self.primary_url,
+            "primary_url": self.primary_url,
             "primary_model": self.primary_model,
-            "fallback": self.fallback_url,
+            "fallback_url": self.fallback_url,
             "fallback_model": self.fallback_model,
             "hardware_busy": self.hardware_busy,
-            "active": self.active_url,
+            "active_url": self.active_url,
             "active_model": self.active_model,
         }
 
