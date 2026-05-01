@@ -33,7 +33,9 @@ sudo pacman -U ./<file>.pkg.tar.zst
 ```
 Download the `.pkg.tar.zst` from [warp.dev/download](https://www.warp.dev/download) first.
 
-Warp requires glibc >= 2.31 and OpenGL ES 3.0+ or Vulkan. After installing, open Warp and make sure **AI features are enabled** — the MCP server and skills only activate inside a Warp agent session.
+Warp requires glibc >= 2.31 and OpenGL ES 3.0+ or Vulkan.
+
+**First launch requires a Warp account.** Sign up is free at [warp.dev](https://www.warp.dev). There is no build-from-source path that bypasses this — the terminal client is not yet open source. After signing in, make sure **AI features are enabled** in Settings — the MCP server and skills only activate inside a Warp agent session.
 
 ### Tenstorrent hardware
 
