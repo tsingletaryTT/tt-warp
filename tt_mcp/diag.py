@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
@@ -102,7 +101,7 @@ _PATTERNS: list[tuple[str, str, str, str, str]] = [
     (
         "noc_timeout",
         "error",
-        r"NOC timeout|noc.*timeout",
+        r"noc.*timeout",
         "NOC (Network-on-Chip) timeout on TT device",
         "Reset devices: tt-smi -r\n"
         "If persistent, check for stale processes: pkill -9 -f tt-metal",
@@ -116,7 +115,7 @@ _PATTERNS: list[tuple[str, str, str, str, str]] = [
     (
         "driver_mismatch",
         "error",
-        r"[Dd]river version.*does not match|firmware.*mismatch|version mismatch",
+        r"driver version.*does not match|firmware.*mismatch|tenstorrent.*version mismatch",
         "Driver/firmware version mismatch",
         "Update firmware: tt-smi --update-firmware\n"
         "Or reinstall drivers via tt-installer: "
@@ -138,7 +137,7 @@ _PATTERNS: list[tuple[str, str, str, str, str]] = [
 ]
 
 
-def parse_log(log_text: str) -> List[Diagnosis]:
+def parse_log(log_text: str) -> list[Diagnosis]:
     """Scan *log_text* for known TT error patterns and return diagnoses.
 
     Iterates over all registered patterns and collects every match so that a
@@ -153,7 +152,7 @@ def parse_log(log_text: str) -> List[Diagnosis]:
         A list of :class:`Diagnosis` instances, one per matched pattern, in
         registration order.  Empty list when the log is clean.
     """
-    results: List[Diagnosis] = []
+    results: list[Diagnosis] = []
 
     for category, severity, pattern, summary, remediation in _PATTERNS:
         if re.search(pattern, log_text, re.IGNORECASE):
