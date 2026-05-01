@@ -76,6 +76,12 @@ class CpuSidecar:
         # Wait for readiness
         deadline = time.time() + _STARTUP_TIMEOUT
         while time.time() < deadline:
+            # If process died early (e.g. import error, port conflict), give up
+            # immediately rather than burning the full timeout and then calling
+            # terminate() on a dead process (which is unsafe on some platforms).
+            if self._proc.poll() is not None:
+                self._proc = None
+                return None
             url = find_existing_sidecar()
             if url:
                 return url
@@ -87,4 +93,10 @@ class CpuSidecar:
     def stop(self) -> None:
         if self._proc is not None:
             self._proc.terminate()
+            # Wait for the process to actually exit so the port is released
+            # before returning.  Fall back to SIGKILL if it lingers.
+            try:
+                self._proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._proc.kill()
             self._proc = None
