@@ -15,9 +15,9 @@ description: Use when error output, a crash, or a hang appears in the terminal f
 
 1. Collect the full error output — include at least the last 50 lines.
 2. Call `tt_diagnose(log_text)` with the collected text.
-3. For each diagnosis returned:
-   a. Present the `summary` and `remediation` to the user clearly.
-   b. Call `tt_knowledge(diagnosis.category)` to find related lessons or additional context.
+3. For each item in the `diagnoses` list returned:
+   a. Present `item["summary"]` and `item["remediation"]` to the user clearly.
+   b. Call `tt_knowledge(item["category"])` to find related lessons or additional context.
 4. If `tt_diagnose` returns no results, call `tt_doctor()` to check system health broadly.
 5. After remediation, suggest re-running the workload and watching for the same error.
 

@@ -26,6 +26,7 @@ description: Use when the user is working in a tt-lang directory, mentions kerne
 3. **Run on hardware**
    - Call `tt_status()` to confirm device availability
    - Ensure correct env: `tt_activate_env("metal")`
-   - Run inside container: `docker exec <container> python <kernel.py>`
+   - Find the running container: `docker ps --filter ancestor=ghcr.io/tenstorrent/tt-lang/tt-lang-dist-ubuntu-22-04:latest --format '{{.Names}}'`
+   - Run: `docker exec <container_name> python <kernel.py>`
 
 4. **Debug**: call `tt_diagnose(log)` on any crash output before attempting fixes.

@@ -22,8 +22,9 @@ description: Use when tt_doctor() reports missing components, or when the user h
    Tell the user to run it and then restart their shell.
 
 3. **If hugepages not configured:**
-   Run: `sudo sysctl -w vm.nr_hugepages=1024`
-   Persist: `echo 'vm.nr_hugepages=1024' | sudo tee -a /etc/sysctl.conf`
+   Call `tt_knowledge("hugepages configuration <mesh_device>")` for the correct value for this hardware.
+   Apply the returned sysctl command (typically `sudo sysctl -w vm.nr_hugepages=<N>` where N depends on hardware).
+   Persist: `echo 'vm.nr_hugepages=<N>' | sudo tee -a /etc/sysctl.conf`
 
 4. **If no runtime for inference (wan2.2 / llama3 etc.):**
    Call `tt_knowledge("tt-inference-server install <mesh_device>")` for the
