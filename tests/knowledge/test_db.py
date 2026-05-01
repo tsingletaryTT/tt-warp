@@ -5,7 +5,11 @@ from tt_mcp.knowledge.db import KnowledgeDB
 
 @pytest.fixture
 def db(tmp_path):
-    return KnowledgeDB(tmp_path / "knowledge.db")
+    # Yield instead of return so the connection is closed after each test,
+    # preventing resource leaks and WAL/lock interference between tests.
+    instance = KnowledgeDB(tmp_path / "knowledge.db")
+    yield instance
+    instance.close()
 
 
 def test_index_and_search_basic(db):
@@ -49,3 +53,17 @@ def test_sync_timestamp(db):
     assert db.last_sync_timestamp() is None
     db.set_sync_timestamp(1_700_000_000.0)
     assert db.last_sync_timestamp() == pytest.approx(1_700_000_000.0)
+
+
+def test_reindex_removes_stale_fts_row(db):
+    # Index a chunk with "original alpha content" first, then re-index the
+    # same chunk_id with completely different content.  The stale FTS row
+    # (containing "alpha") must be gone; only the new "beta" content should
+    # be searchable.  Without the DELETE-before-INSERT fix, FTS5 would keep
+    # both rows and "alpha" would still return a hit.
+    db.index_chunk("c1", "src", "lesson-x", "Title", "original alpha content",
+                   hardware_tags=[], status="validated")
+    db.index_chunk("c1", "src", "lesson-x", "Title", "updated beta content",
+                   hardware_tags=[], status="validated")
+    assert db.search("alpha") == [], "stale FTS row still present after re-index"
+    assert len(db.search("beta")) == 1, "updated content not found after re-index"

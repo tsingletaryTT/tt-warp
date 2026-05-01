@@ -109,14 +109,22 @@ class KnowledgeDB:
         # Concatenate title into the FTS document so title keywords boost recall.
         fts_content = f"{title}\n{content}"
 
-        # INSERT OR REPLACE handles both initial indexing and re-indexing.
+        # INSERT OR REPLACE handles both initial indexing and re-indexing for
+        # the relational table, which has a proper PRIMARY KEY constraint.
         self._conn.execute(
             "INSERT OR REPLACE INTO chunks VALUES (?,?,?,?,?,?,?)",
             (chunk_id, source, lesson_id, title, content,
              json.dumps(hardware_tags), status),
         )
+        # FTS5 virtual tables do NOT enforce uniqueness — INSERT OR REPLACE
+        # silently appends a new row instead of replacing the existing one,
+        # leaving stale content searchable alongside the updated content.
+        # Explicitly DELETE the old FTS row first to ensure clean re-indexing.
         self._conn.execute(
-            "INSERT OR REPLACE INTO chunks_fts(chunk_id, content) VALUES (?,?)",
+            "DELETE FROM chunks_fts WHERE chunk_id = ?", (chunk_id,)
+        )
+        self._conn.execute(
+            "INSERT INTO chunks_fts(chunk_id, content) VALUES (?,?)",
             (chunk_id, fts_content),
         )
         self._conn.commit()
