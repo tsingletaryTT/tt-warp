@@ -22,6 +22,9 @@ from typing import Optional
 
 from tt_mcp.llm import LLMState
 
+# Limit the public API surface to only the symbols callers should import.
+__all__ = ["DispatchResult", "dispatch_workload"]
+
 
 @dataclass
 class DispatchResult:
@@ -220,7 +223,14 @@ def dispatch_workload(
     if _docker_image_available():
         if llm_state:
             llm_state.pre_occupy()
-        result = _launch_docker(model or "default", prompt)
+        # Wrap in try/except so that an unexpected exception from
+        # _launch_docker never leaves hardware_busy permanently stuck True.
+        try:
+            result = _launch_docker(model or "default", prompt)
+        except Exception as e:
+            if llm_state:
+                llm_state.hardware_released()
+            return DispatchResult(method="docker", success=False, message=str(e))
         # On launch failure the hardware was never actually occupied, so
         # release the occupation state to keep llm_state consistent.
         if llm_state and not result.success:
