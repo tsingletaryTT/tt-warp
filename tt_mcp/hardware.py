@@ -189,11 +189,21 @@ def is_wormhole() -> bool:
     return hw is not None and hw["primary_type"] in _WH_TYPES
 
 
-def get_mesh_device() -> Optional[str]:
-    """Return the normalised mesh device name for the detected hardware.
+def _mesh_from_hw(hw: dict) -> Optional[str]:
+    """Compute the mesh device name from an already-fetched hardware dict.
 
-    Maps (board_type, chip_count) pairs to canonical mesh device names used
-    by the Tenstorrent software stack (e.g. ``tt-metal``).
+    This is the pure mapping logic shared by :func:`get_mesh_device` and
+    :func:`write_state`.  Callers that have already run ``detect_hardware()``
+    can call this directly to avoid a redundant ``tt-smi`` subprocess.
+
+    Parameters
+    ----------
+    hw:
+        A non-None hardware dict as returned by :func:`detect_hardware`.
+
+    Returns
+    -------
+    The mesh device name string, or None when the board type is unrecognised.
 
     =========  ======  ===========
     board_type  count   mesh name
@@ -206,15 +216,7 @@ def get_mesh_device() -> Optional[str]:
     P300C       1       P100
     P300C       2       P300
     =========  ======  ===========
-
-    Returns
-    -------
-    The mesh device name string, or None when no hardware is detected.
     """
-    hw = detect_hardware()
-    if not hw:
-        return None
-
     board = hw["primary_type"]
     count = hw["count"]
 
@@ -231,12 +233,32 @@ def get_mesh_device() -> Optional[str]:
     return board.rstrip("C") if board.endswith("C") else board
 
 
+def get_mesh_device() -> Optional[str]:
+    """Return the normalised mesh device name for the detected hardware.
+
+    Runs ``tt-smi -s`` once, then delegates to :func:`_mesh_from_hw` for the
+    board-type → mesh-name mapping.
+
+    Returns
+    -------
+    The mesh device name string, or None when no hardware is detected.
+    """
+    hw = detect_hardware()
+    if not hw:
+        return None
+    return _mesh_from_hw(hw)
+
+
 def write_state(state_path: Path, extra: Optional[dict] = None) -> dict:
     """Persist a hardware snapshot to a JSON file and return the state dict.
 
-    The file is written atomically (write then rename is not used here, but
-    the directory is created automatically).  An ``extra`` mapping can supply
-    additional top-level keys that are merged into the state before writing.
+    Runs ``tt-smi -s`` exactly once — the same snapshot is used to populate
+    both ``"hardware"`` and ``"mesh_device"`` fields, avoiding a second
+    subprocess call (and the risk of an inconsistent snapshot between the two).
+
+    The directory is created automatically if it does not exist.  An ``extra``
+    mapping can supply additional top-level keys that are merged into the state
+    before writing.
 
     Parameters
     ----------
@@ -250,9 +272,13 @@ def write_state(state_path: Path, extra: Optional[dict] = None) -> dict:
     The state dict that was written to disk.
     """
     hw = detect_hardware()
+    # Derive mesh device from the already-fetched hw dict to avoid a second
+    # tt-smi subprocess call (get_mesh_device() would call detect_hardware()
+    # again, giving a different snapshot and wasting a subprocess round-trip).
+    mesh = _mesh_from_hw(hw) if hw else None
     state: dict = {
         "hardware": hw,
-        "mesh_device": get_mesh_device(),
+        "mesh_device": mesh,
         # Wall-clock timestamp so callers can gauge staleness.
         "timestamp": time.time(),
     }

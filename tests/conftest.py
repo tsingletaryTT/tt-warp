@@ -1,4 +1,5 @@
 import json
+import shutil
 import pytest
 from pathlib import Path
 
@@ -50,8 +51,14 @@ def smi_p300c(monkeypatch):
 
     The fake only accepts ``tt-smi -s`` calls; any other subprocess invocation
     will raise AssertionError to catch accidental broad patching.
+
+    Also patches ``shutil.which`` so that ``has_tt_smi()`` returns True even on
+    machines where ``tt-smi`` is not installed (e.g. CI).
     """
     import subprocess
+
+    # Ensure has_tt_smi() sees a usable binary regardless of host environment.
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/tt-smi")
 
     result = subprocess.CompletedProcess(
         args=["tt-smi", "-s"], returncode=0,
@@ -73,8 +80,14 @@ def smi_t3k(monkeypatch):
 
     The fake only accepts ``tt-smi -s`` calls; any other subprocess invocation
     will raise AssertionError to catch accidental broad patching.
+
+    Also patches ``shutil.which`` so that ``has_tt_smi()`` returns True even on
+    machines where ``tt-smi`` is not installed (e.g. CI).
     """
     import subprocess
+
+    # Ensure has_tt_smi() sees a usable binary regardless of host environment.
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/tt-smi")
 
     result = subprocess.CompletedProcess(
         args=["tt-smi", "-s"], returncode=0,
