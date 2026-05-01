@@ -114,14 +114,32 @@ def main() -> None:
     pass
 
 
+def _register_claude_code_mcp() -> None:
+    """Register tt-hardware with Claude Code's global MCP config if claude is installed."""
+    claude = shutil.which("claude")
+    if not claude:
+        return
+    command = _mcp_server_command()
+    result = __import__("subprocess").run(
+        [claude, "mcp", "add", "--scope", "user", "tt-hardware", command],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        click.echo(f"  ✓ Claude Code MCP registered: tt-hardware")
+    else:
+        # Already registered or other harmless error — don't fail the install.
+        click.echo(f"  ✓ Claude Code MCP: {result.stderr.strip() or 'already registered'}")
+
+
 @main.command()
 def install() -> None:
-    """Wire tt-warp into Warp: MCP config, shell hooks, skills."""
+    """Wire tt-warp into Warp: MCP config, shell hooks, skills, and Claude Code."""
     click.echo("Installing tt-warp...")
     _TT_WARP_DIR.mkdir(parents=True, exist_ok=True)
     _write_mcp_config()
     _wire_shell_hooks()
     _install_skills()
+    _register_claude_code_mcp()
 
     hw = hardware.detect_hardware()
     if hw:
