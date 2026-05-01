@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tt-warp"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.0",
+    "click>=8.1",
+    "requests>=2.31",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+sidecar = ["transformers>=4.40", "torch", "fastapi", "uvicorn"]
+dev = ["pytest>=8", "pytest-mock>=3.12", "responses>=0.25"]
+
+[project.scripts]
+tt-mcp-server = "tt_mcp.server:main"
+tt-warp = "tt_warp.cli:main"
+
+[tool.setuptools.packages.find]
+# Only include the Python packages (not shell/ or skills/ which are non-Python assets)
+include = ["tt_mcp*", "tt_warp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
