@@ -162,6 +162,12 @@ class KnowledgeDB:
         """
         hw_lower = hardware.lower() if hardware else None
 
+        # FTS5 treats hyphens as the column-exclusion operator (e.g. "tt-smi"
+        # is parsed as "tt" MINUS "smi").  Replace hyphens with spaces so
+        # "tt-smi" becomes two independent keyword tokens: "tt" and "smi".
+        # This preserves recall while avoiding query syntax errors.
+        safe_query = query.replace("-", " ")
+
         if hw_lower is None:
             # No hardware filter: pure FTS search with status-boosted ranking.
             # Over-fetch by 3× to have headroom for any post-processing.
@@ -177,7 +183,7 @@ class KnowledgeDB:
                     rank
                 LIMIT ?
             """
-            rows = self._conn.execute(sql, (query, top_k)).fetchall()
+            rows = self._conn.execute(sql, (safe_query, top_k)).fetchall()
             return [dict(r) for r in rows]
 
         # Hardware-filtered search:
@@ -187,7 +193,7 @@ class KnowledgeDB:
             FROM chunks_fts f
             WHERE chunks_fts MATCH ?
         """
-        fts_rows = self._conn.execute(fts_sql, (query,)).fetchall()
+        fts_rows = self._conn.execute(fts_sql, (safe_query,)).fetchall()
         # Build a map of chunk_id -> FTS rank (lower = more relevant in FTS5).
         fts_rank: dict[str, float] = {r["chunk_id"]: r["rank"] for r in fts_rows}
 
