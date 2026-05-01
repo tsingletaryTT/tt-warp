@@ -175,9 +175,24 @@ When inside tmux, the same information is written to the tmux status bar.
 
 ---
 
-## Using the agent
+## AI agent options
+
+tt-warp registers the TT hardware MCP server with both **Warp** and **Claude Code**. Use whichever AI you have open.
+
+### Warp agent (Ctrl+I)
+
+Warp's agent routes LLM calls through Warp's servers — a free Warp account is required. The MCP tools (`tt-mcp-server`) and skills run entirely locally; only the completions go over the network.
 
 Open a Warp agent session (Ctrl+I or the agent icon) and describe what you want to do. The agent calls MCP tools and applies skills automatically.
+
+### Claude Code
+
+`tt-warp install` registers `tt-hardware` with Claude Code's global MCP config (user scope). In any `claude` session the TT tools are immediately available — no Warp account required, LLM calls go to Anthropic directly.
+
+```
+claude                       # start Claude Code
+# then ask: "what TT hardware do I have?"
+```
 
 | Say this | Agent does |
 |----------|-----------|
