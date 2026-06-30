@@ -25,3 +25,11 @@ description: Use when error output, a crash, or a hang appears in the terminal f
 - `hugepages` → one-line sysctl fix; may need sudo
 - `shm` → clear /dev/shm/tenstorrent* + tt-smi -r
 - `noc_timeout` → reset devices, check for stale processes
+
+## QB2 / Blackhole patterns
+- `dispatch_core` (`DispatchCoreAxis.ROW`) → use `ttnn.DispatchCoreConfig(ttnn.DispatchCoreType.WORKER)`
+- `gated_repo` (`GatedRepoError`) → accept the model license on HF + export `HF_TOKEN`
+- `device_enumeration` (tt-smi sees 4 chips but the runtime opens fewer) →
+  `ls /dev/tenstorrent/` then reload the driver: `sudo rmmod tenstorrent && sudo modprobe tenstorrent`
+- `hugepages_1g` (`/dev/hugepages-1G` mount missing for tt-inference-server) →
+  configure 1G hugepages + hugetlbfs mount (tt_diagnose returns the exact commands)

@@ -134,6 +134,62 @@ _PATTERNS: list[tuple[str, str, str, str, str]] = [
         "Intel Extension for PyTorch conflict (CPU-only package, not needed for TT)",
         "Remove it: pip uninstall intel_extension_for_pytorch",
     ),
+    # -----------------------------------------------------------------------
+    # Wrong dispatch-core configuration (Blackhole / QB2)
+    # Code written for an older default trips DispatchCoreAxis.ROW; Blackhole
+    # wants the WORKER dispatch core type.
+    # -----------------------------------------------------------------------
+    (
+        "dispatch_core",
+        "error",
+        r"DispatchCoreAxis\.ROW|dispatch.?core.*axis",
+        "Wrong dispatch-core configuration for this device",
+        "Use the WORKER dispatch core type:\n"
+        "  ttnn.DispatchCoreConfig(ttnn.DispatchCoreType.WORKER)",
+    ),
+    # -----------------------------------------------------------------------
+    # Gated Hugging Face repository (e.g. Meta Llama weights)
+    # The HF token lacks access, or the model license has not been accepted.
+    # -----------------------------------------------------------------------
+    (
+        "gated_repo",
+        "error",
+        r"GatedRepoError|Access to model.*restricted|gated repo|cannot access gated",
+        "Hugging Face model is gated — token lacks access",
+        "Accept the model license on huggingface.co while logged into the same\n"
+        "account, then export a read token:\n"
+        "  export HF_TOKEN=hf_your_token_here",
+    ),
+    # -----------------------------------------------------------------------
+    # Device enumeration failure
+    # tt-smi sees all chips but the runtime/container opens only some.  Usually
+    # a stale kernel-mode driver; a reload re-exposes every /dev/tenstorrent/N.
+    # -----------------------------------------------------------------------
+    (
+        "device_enumeration",
+        "error",
+        r"failed to open device|opening device.*failed|only \d+ of \d+.*device|could not open.*tenstorrent|unable to (open|enumerate) device|/dev/tenstorrent/\d+ not found",
+        "Could not open all TT devices (driver may need a reload)",
+        "Check the device nodes: ls /dev/tenstorrent/   (expect 0 1 2 3 on QB2)\n"
+        "Reload the kernel-mode driver:\n"
+        "  sudo rmmod tenstorrent && sudo modprobe tenstorrent",
+    ),
+    # -----------------------------------------------------------------------
+    # 1G hugepages mount missing (Docker bind-mount failure)
+    # tt-inference-server bind-mounts /dev/hugepages-1G; if 1G hugepages are
+    # not configured the mount source does not exist and Docker refuses to run.
+    # -----------------------------------------------------------------------
+    (
+        "hugepages_1g",
+        "error",
+        r"hugepages-1G|invalid mount config.*hugepage",
+        "1G hugepages mount missing for tt-inference-server",
+        "Configure 1G hugepages and the hugetlbfs mount:\n"
+        "  echo 'vm.nr_hugepages = 32' | sudo tee /etc/sysctl.d/99-hugepages.conf\n"
+        "  sudo sysctl -p /etc/sysctl.d/99-hugepages.conf\n"
+        "  sudo mkdir -p /dev/hugepages-1G\n"
+        "  sudo mount -t hugetlbfs -o pagesize=1G hugetlbfs /dev/hugepages-1G",
+    ),
 ]
 
 

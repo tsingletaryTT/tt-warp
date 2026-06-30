@@ -22,6 +22,20 @@ def test_probe_finds_sidecar_only():
     assert state.fallback_url == "http://localhost:8001"
 
 
+def test_sidecar_port_8011_is_a_candidate():
+    """tt-warp's own CPU sidecar runs on :8011 (off QB2's :8001 prompt
+    server), so 8011 must be in the probe list as a sidecar role."""
+    assert (8011, "sidecar") in CANDIDATE_PORTS
+
+
+@rsps_lib.activate
+def test_probe_finds_tt_warp_sidecar_on_8011():
+    rsps_lib.add(rsps_lib.GET, "http://localhost:8011/v1/models",
+                 json={"data": [{"id": "Qwen3-0.6B"}]}, status=200)
+    state = probe_endpoints()
+    assert state.fallback_url == "http://localhost:8011"
+
+
 @rsps_lib.activate
 def test_probe_finds_nothing():
     state = probe_endpoints()

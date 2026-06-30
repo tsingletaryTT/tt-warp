@@ -272,34 +272,25 @@ def tt_generate(prompt: str, model: str = "wan2.2", steps: int = 30) -> dict:
 def tt_serve(model: str) -> dict:
     """Start a local inference server for a model.
 
-    Attempts to start a serving process via ``tt-ctl``.  If tt-ctl is not
-    found, returns an error with installation guidance.
+    Runs the dispatch chain in "serve" mode (model name, no script/prompt):
+    tt-ctl → pre-installed tt-inference-server ``run.py`` → cached Docker image
+    → guided setup. On a QB2 this lands on ``run.py`` even without tt-ctl, which
+    sizes the deployment to the model (``p100`` for ≤14B, ``p300x2`` for
+    70B/32B-class) and exposes an OpenAI-compatible API on :8000.
 
-    Once started the server exposes an OpenAI-compatible HTTP API.
-    Poll ``/health`` on the returned URL to wait for readiness.
+    Poll ``/v1/models`` on :8000 to wait for readiness (first run compiles
+    weights, ~3–5 min, longer if downloading).
 
     Args:
-        model: Model name to serve, e.g. 'llama3-8b', 'mistral-7b'.
+        model: Model name to serve, e.g. 'Qwen3-32B', 'Llama-3.3-70B-Instruct',
+               'Llama-3.1-8B-Instruct'.
 
     Returns:
         {"method": str, "success": bool, "message": str,
          "fallback_llm": str|None}
     """
     state = _get_llm_state()
-    if _shutil.which("tt-ctl"):
-        result = dispatch.dispatch_workload(
-            prompt=None, model=model, llm_state=state
-        )
-    else:
-        # tt-ctl not found — return a helpful error rather than an exception.
-        result = dispatch.DispatchResult(
-            method="none",
-            success=False,
-            message=(
-                "tt-ctl not found. "
-                "Install tt-local-generator or tt-inference-server."
-            ),
-        )
+    result = dispatch.dispatch_workload(prompt=None, model=model, llm_state=state)
     return {
         "method": result.method,
         "success": result.success,

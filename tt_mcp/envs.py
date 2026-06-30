@@ -53,9 +53,52 @@ ENVIRONMENTS = {
 _VENV_MARKERS = {
     "python_env": "metal",
     "python_env_vllm": "vllm",
+    # QB2 (and other pre-installed Blackhole boxes) ship vLLM in a standalone
+    # venv at ~/.tenstorrent-venv rather than under the tt-metal build tree.
+    ".tenstorrent-venv": "vllm",
     "tt-forge-venv": "forge",
     "tt-xla-venv": "xla",
 }
+
+# Environments that run on the tt-metal runtime and therefore need
+# TT_METAL_ARCH_NAME set to the connected board's architecture.
+_METAL_BACKED_ENVS = frozenset({"metal", "vllm"})
+
+
+def _detected_arch() -> Optional[str]:
+    """Return the tt-metal arch string for the connected hardware, or None.
+
+    "blackhole" for Blackhole boards (QB2's p300c, p150, …), "wormhole" for
+    Wormhole boards (n150/n300/T3K). Imported lazily so this module stays
+    cheap to import and easy to monkeypatch in tests.
+    """
+    from tt_mcp import hardware
+
+    if hardware.is_blackhole():
+        return "blackhole"
+    if hardware.is_wormhole():
+        return "wormhole"
+    return None
+
+
+def _resolve_env(name: str) -> tuple[Path, dict, list]:
+    """Resolve (venv_path, set_vars, unset_vars) for *name*.
+
+    Special-cases ``vllm``: a QB2 ships vLLM in ``~/.tenstorrent-venv`` and has
+    no tt-metal source tree, so when that venv exists we activate it directly
+    and deliberately do NOT export ``TT_METAL_HOME`` (pointing it at the
+    source-less ``~/tt-metal`` would mislead the runtime). On a tt-metal build
+    machine we fall back to the build-tree venv and the original variables.
+
+    Raises:
+        KeyError: if *name* is not in ENVIRONMENTS.
+    """
+    env = ENVIRONMENTS[name]  # intentionally raises KeyError for unknown names
+    if name == "vllm":
+        qb2_venv = Path("~/.tenstorrent-venv").expanduser()
+        if qb2_venv.exists():
+            return qb2_venv, {}, []
+    return Path(env["venv_path"]).expanduser(), env["set_vars"], env["unset_vars"]
 
 
 def detect_active_env() -> Optional[str]:
@@ -81,7 +124,7 @@ def detect_active_env() -> Optional[str]:
     return None
 
 
-def get_activation_snippet(name: str) -> str:
+def get_activation_snippet(name: str, arch: Optional[str] = None) -> str:
     """Return a bash snippet that activates the named TT environment.
 
     The snippet can be eval'd by a subprocess shell to bring up the correct
@@ -89,20 +132,33 @@ def get_activation_snippet(name: str) -> str:
 
         subprocess.run(["bash", "-c", get_activation_snippet("metal") + " && python my_script.py"])
 
+    Args:
+        name: One of the keys in :data:`ENVIRONMENTS`.
+        arch: tt-metal architecture ("blackhole"/"wormhole"). When None, it is
+              auto-detected from the connected hardware. Only emitted for
+              tt-metal-backed envs (``metal``/``vllm``); Blackhole hardware
+              (QB2) requires ``TT_METAL_ARCH_NAME=blackhole``.
+
     Raises:
         KeyError: if *name* is not in ENVIRONMENTS.
     """
-    env = ENVIRONMENTS[name]  # intentionally raises KeyError for unknown names
-    venv = Path(env["venv_path"]).expanduser()
+    venv, set_vars, unset_vars = _resolve_env(name)
 
     lines = [f'source "{venv}/bin/activate"']
 
     # Unset conflicting variables before exporting new ones so there is no
     # partial state from a previously active environment.
-    for var in env["unset_vars"]:
+    for var in unset_vars:
         lines.append(f"unset {var}")
 
-    for var, val in env["set_vars"].items():
+    for var, val in set_vars.items():
         lines.append(f'export {var}="{val}"')
+
+    # tt-metal selects its device backend from TT_METAL_ARCH_NAME; without it,
+    # Blackhole hardware fails to initialise. Only relevant to metal-backed envs.
+    if name in _METAL_BACKED_ENVS:
+        resolved_arch = arch if arch is not None else _detected_arch()
+        if resolved_arch:
+            lines.append(f'export TT_METAL_ARCH_NAME="{resolved_arch}"')
 
     return "\n".join(lines)

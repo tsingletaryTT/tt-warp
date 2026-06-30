@@ -52,6 +52,26 @@ The server exposes 11 tools (`tt_mcp/server.py`), all prefixed `tt_`:
 `tt_reset_devices`, `tt_knowledge`. When adding a tool, register it in the
 README usage table and reference it from the relevant skill.
 
+## QB2 / Blackhole target (the primary deployment)
+
+tt-warp's first-class target is a QuietBox 2: **2× Blackhole p300c cards = 4
+chips = 4 independent PCIe devices** (not a mesh; no inter-chip Ethernet). Facts
+the code and skills depend on — keep them true:
+
+- **vLLM venv is `~/.tenstorrent-venv`**, not the tt-metal build tree. A QB2 has
+  no tt-metal source (`~/tt-metal` holds venvs only), so do NOT point
+  `TT_METAL_HOME` at it for the QB2 vLLM env. `envs.py` resolves this.
+- **`TT_METAL_ARCH_NAME=blackhole`** is required for metal-backed envs;
+  `tt_activate_env` auto-detects and exports it.
+- **Serving** goes through the pre-installed `tt-inference-server` launcher at
+  `~/.local/lib/tt-inference-server/run.py`. Device sizing: `p100` = one chip
+  (≤14B models), `p300x2` = all four (70B/32B-class). `dispatch._tt_device_for`
+  encodes this; the ~70B ceiling is real (bigger needs an 8-chip box).
+- **Qwen3-32B ships pre-cached** on a QB2 — the best zero-download default model.
+- **Port map:** `:8000` = inference server (OpenAI API), `:8001` = its prompt
+  server, `:3000` = tt-studio. The CPU sidecar therefore binds **`:8011`**, never
+  `:8001` — changing that reintroduces a collision.
+
 ## Testing
 
 - Run the suite with `python -m pytest`. **Note:** this venv ships a broken

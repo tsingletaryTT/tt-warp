@@ -119,7 +119,7 @@ Use the from-source path if you want to contribute, modify behavior, or run unre
 `tt-warp install` does three things:
 - Registers `tt-hardware` in `~/.warp/.mcp.json` so any Warp agent session can call TT tools
 - Writes the shell hook to `~/.tt-warp/tt-warprc`
-- Copies the six skill files to `~/.warp/skills/`
+- Copies the eight skill files to `~/.warp/skills/`
 
 `tt-warp sync` fetches the offline knowledge corpus from [tt-vscode-toolkit](https://github.com/tenstorrent/tt-vscode-toolkit) (~43 validated lessons, ~50 MB).
 
@@ -202,7 +202,9 @@ claude                       # start Claude Code
 | "Switch to the forge environment" | `tt_activate_env("forge")` |
 | "Generate a video of a sunset over mountains" | `tt_serve()` → `tt_generate()` |
 | "Why did my workload crash?" (paste the log) | `tt_diagnose()` + `tt_knowledge()` |
-| "Run inference/serve Llama3 on my N300" | `tt_serve("llama3")` |
+| "Serve Qwen3-32B" / "run a model" | `tt_serve("Qwen3-32B")` (sizes the device automatically) |
+| "What's the best model to run on my box?" | tt-serve-llm skill → model zoo + chip sizing |
+| "Open a chat window for my model" | tt-connect-ui skill (Open WebUI → `:8000/v1`) |
 | "Run my script on all devices" | `tt_run_workload(script, devices)` |
 | "Is my system ready to run workloads?" | `tt_doctor()` |
 | "Show me the logs for the llama3 service" | `tt_logs("llama3")` |
@@ -217,11 +219,13 @@ Four TT framework environments are registered. The agent selects and activates t
 | Name | Venv path | Use for |
 |------|-----------|---------|
 | `metal` | `~/tt-metal/python_env` | tt-metal kernels, TTNN ops, custom operators |
-| `vllm` | `~/tt-metal/build/python_env_vllm` | vLLM inference (Llama, Mistral, Qwen) |
+| `vllm` | `~/.tenstorrent-venv` (QB2) or `~/tt-metal/build/python_env_vllm` | vLLM inference (Llama, Mistral, Qwen) |
 | `forge` | `~/tt-forge-venv` | PyTorch model compilation via tt-forge |
 | `xla` | `~/tt-xla-venv` | JAX workloads via tt-xla |
 
 `forge` requires unsetting `TT_METAL_HOME` — the agent handles this when it calls `tt_activate_env("forge")`. Never mix envs in one shell session without deactivating first.
+
+On Blackhole hardware (e.g. a QB2), `tt_activate_env` also exports `TT_METAL_ARCH_NAME=blackhole` for the `metal`/`vllm` envs — tt-metal needs it to select the right device backend. The arch is auto-detected from the connected board, and the `vllm` env resolves to `~/.tenstorrent-venv` when present (a QB2 ships vLLM there and has no tt-metal source tree, so `TT_METAL_HOME` is left unset).
 
 ---
 
@@ -230,25 +234,28 @@ Four TT framework environments are registered. The agent selects and activates t
 When you ask the agent to run a workload, it tries these in order and stops at the first that works:
 
 1. **tt-ctl** (if `tt-ctl` is on PATH) — best UX, full service lifecycle management
-2. **tt-inference-server Docker image** (if image is cached) — `docker run` with correct `--device` flags, polls `:8000` for readiness
-3. **Direct execution** — activates the correct env and runs the script
-4. **Guided setup** — if nothing is installed, the `tt-setup` skill walks you through it step by step
+2. **tt-inference-server `run.py`** (pre-installed on a QB2 at `~/.local/lib/tt-inference-server/`) — for model-serve requests; sizes `--tt-device` to the model (`p100` for ≤14B, `p300x2` for 70B/32B-class) and exposes the OpenAI-compatible API on `:8000`
+3. **tt-inference-server Docker image** (if image is cached) — `docker run` with the device, 1G-hugepages mount, and `HF_TOKEN`; polls `:8000` for readiness
+4. **Direct execution** — activates the correct env and runs the script
+5. **Guided setup** — if nothing is installed, the `tt-setup` skill walks you through it step by step
 
 ---
 
 ## Beer handoff
 
-Loading a large model occupies the TT hardware for 30–120 seconds. During that window, the agent routes to a CPU Qwen3-0.6B sidecar on `:8001` so it stays responsive and can answer questions while the hardware loads. When the hardware LLM comes back on `:8000`, it transitions back automatically.
+Loading a large model occupies the TT hardware for 30–120 seconds. During that window, the agent routes to a CPU Qwen3-0.6B sidecar on `:8011` so it stays responsive and can answer questions while the hardware loads. When the hardware LLM comes back on `:8000`, it transitions back automatically.
+
+> The sidecar uses `:8011`, not `:8001` — on a QB2 (and any tt-inference-server host) `:8001` is the inference server's own prompt server, so binding it would collide.
 
 You can see the current state via the agent ("what's the LLM routing state?") or by reading `~/.tt-warp/state.json`:
 
 ```json
 {
   "llm": {
-    "active_url": "http://localhost:8001",
+    "active_url": "http://localhost:8011",
     "hardware_busy": true,
     "primary_url": "http://localhost:8000",
-    "fallback_url": "http://localhost:8001"
+    "fallback_url": "http://localhost:8011"
   }
 }
 ```
@@ -308,7 +315,7 @@ If `tt_doctor()` reports missing components, say *"help me get set up"* and the 
 | `~/.tt-warp/tt-warprc` | Shell hook — source from `.bashrc` / `.zshrc` |
 | `~/.tt-warp/state.json` | Hardware state cache (written by MCP server and shell) |
 | `~/.tt-warp/knowledge/knowledge.db` | Offline knowledge corpus |
-| `~/.warp/skills/tt-*.md` | Agent behavioral guides (six skills) |
+| `~/.warp/skills/tt-*.md` | Agent behavioral guides (eight skills) |
 
 ---
 
@@ -345,7 +352,7 @@ tt-warp sync      # re-fetch corpus
 ④ tt-knowledge  (offline corpus, hardware-filtered)
 ① tt-mcp-server (self-contained MCP tool surface)
 ② tt-warp-shell (PROMPT_COMMAND chip + tmux bar)
-③ TT Skills     (six behavioral guides for the agent)
+③ TT Skills     (eight behavioral guides for the agent)
          ↕
 TT Hardware  (tt-smi, tt-metal runtime, Docker)
 ```

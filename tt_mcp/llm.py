@@ -5,7 +5,7 @@ The beer handoff pattern: when TT hardware is about to be occupied by a
 workload, the agent needs an LLM to continue talking to the user.
 
 - pre_occupy()         marks hardware as busy → agent routes to CPU sidecar
-                       (e.g. Qwen3 on :8001)
+                       (Qwen3 on :8011)
 - hardware_released()  marks hardware as free → agent routes back to TT
                        silicon LLM on :8000
 
@@ -26,7 +26,10 @@ import requests
 # occupancy.  The first matching port wins for each role bucket.
 CANDIDATE_PORTS = [
     (8000, "primary"),   # tt-inference-server on TT silicon
-    (8001, "sidecar"),   # Qwen3 CPU sidecar
+    (8011, "sidecar"),   # tt-warp Qwen3 CPU sidecar (off :8001 — see below)
+    # :8001 is tt-inference-server's prompt server on a QB2 — a valid
+    # OpenAI-compatible fallback, but NOT where we bind our own sidecar.
+    (8001, "generic"),
     (11434, "ollama"),   # local Ollama instance
     (8080, "generic"),   # any other OpenAI-compatible server
 ]

@@ -2,9 +2,14 @@
 Manages a Qwen3-0.6B CPU inference sidecar for the beer handoff pattern.
 
 Checks for an already-running sidecar (tt-local-generator's prompt_server
-on :8001 or any compatible server) before spawning a new process. The
-optional [sidecar] extras (transformers, fastapi, uvicorn) are only needed
-when no existing sidecar is found and auto-spawn is requested.
+or any compatible server) before spawning a new process. The optional
+[sidecar] extras (transformers, fastapi, uvicorn) are only needed when no
+existing sidecar is found and auto-spawn is requested.
+
+Port note: the sidecar lives on :8011, deliberately NOT :8001 — on a QB2
+(and any tt-inference-server host) :8001 is the inference server's prompt
+server, so binding it would collide. :8000 stays reserved for the primary
+TT-silicon vLLM server.
 """
 from __future__ import annotations
 import subprocess
@@ -15,13 +20,13 @@ from typing import Optional
 
 import requests
 
-_SIDECAR_PORT = 8001
+_SIDECAR_PORT = 8011
 _STARTUP_TIMEOUT = 60  # seconds to wait for sidecar to become ready
 _PROBE_TIMEOUT = 1.5
 
 
 def find_existing_sidecar() -> Optional[str]:
-    """Return URL if a compatible server is already on :8001, else None."""
+    """Return URL if a compatible server is already on :8011, else None."""
     url = f"http://localhost:{_SIDECAR_PORT}"
     try:
         r = requests.get(f"{url}/v1/models", timeout=_PROBE_TIMEOUT)
