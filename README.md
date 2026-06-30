@@ -103,12 +103,14 @@ tt-warp sync
 ### From source
 
 ```bash
-git clone https://github.com/tenstorrent/tt-warp ~/code/tt-warp
+git clone https://github.com/tsingletaryTT/tt-warp ~/code/tt-warp
 cd ~/code/tt-warp
 pip install -e .
 tt-warp install
 tt-warp sync
 ```
+
+> Development currently lives at `tsingletaryTT/tt-warp`; it will move to the `tenstorrent` org later.
 
 Use the from-source path if you want to contribute, modify behavior, or run unreleased changes. `pip install -e .` installs in editable mode so edits to the source take effect immediately without reinstalling.
 
