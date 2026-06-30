@@ -1,4 +1,3 @@
-<!-- skills/tt-generate.md -->
 ---
 name: tt-generate
 description: Use when the user expresses intent to generate video, images, or run inference (e.g. "generate a video of X", "run inference on Y", "create an image of Z").

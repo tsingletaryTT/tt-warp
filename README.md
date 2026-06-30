@@ -37,14 +37,14 @@ Warp requires glibc >= 2.31 and OpenGL ES 3.0+ or Vulkan.
 
 **First launch requires a Warp account.** Sign up is free at [warp.dev](https://www.warp.dev). After signing in, make sure **AI features are enabled** in Settings — the MCP server and skills only activate inside a Warp agent session.
 
-**Building from source** (Warp went open source April 2026 under AGPL-3.0):
+**Building from source** (Warp went open source May 7, 2026, under AGPL-3.0; the `warpui_core`/`warpui` crates are dual-licensed MIT):
 ```bash
 git clone https://github.com/warpdotdev/warp
 cd warp
 ./script/bootstrap   # installs build and runtime deps
-cargo build --release --bin warp-oss
+./script/run         # builds and runs the `warp` binary
 ```
-Whether a source build still requires a Warp account at first launch is not yet fully documented — the FAQ notes some features run fully locally while cloud features (Drive, hosted agents) require Warp's backend.
+The cargo bin target is `warp` (not a separate `warp-oss` binary). A source build still uses the same `~/.warp` config directory as the packaged release. Whether it requires a Warp account at first launch is not fully documented — the FAQ notes some features run fully locally while cloud features (Drive, hosted agents, the agent's LLM calls) require Warp's backend.
 
 ### Tenstorrent hardware
 
@@ -203,6 +203,7 @@ claude                       # start Claude Code
 | "Run inference/serve Llama3 on my N300" | `tt_serve("llama3")` |
 | "Run my script on all devices" | `tt_run_workload(script, devices)` |
 | "Is my system ready to run workloads?" | `tt_doctor()` |
+| "Show me the logs for the llama3 service" | `tt_logs("llama3")` |
 | "How do I configure hugepages for my hardware?" | `tt_knowledge("hugepages")` |
 
 ---
@@ -347,4 +348,4 @@ tt-warp sync      # re-fetch corpus
 TT Hardware  (tt-smi, tt-metal runtime, Docker)
 ```
 
-Each layer is independent and ships separately. The MCP server maps to a future native Warp crate; the shell chip maps to a Warp status bar API PR; the skills are candidates for `resources/bundled/skills/`.
+Each layer is independent and ships separately, and each targets a documented Warp agent-platform surface: the MCP server registers via `~/.warp/.mcp.json` ([MCP docs](https://docs.warp.dev/agent-platform/capabilities/mcp/)), the skills install as `~/.warp/skills/<name>/SKILL.md` ([Skills docs](https://docs.warp.dev/agent-platform/capabilities/skills/)), and the shell chip rides the standard `PROMPT_COMMAND` hook. Because Warp shares the cross-tool Agent Skills format, the same skill files also load under Claude Code, Codex, and other agents.

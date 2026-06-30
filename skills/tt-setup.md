@@ -1,4 +1,3 @@
-<!-- skills/tt-setup.md -->
 ---
 name: tt-setup
 description: Use when tt_doctor() reports missing components, or when the user has no TT runtime installed and wants to get started.

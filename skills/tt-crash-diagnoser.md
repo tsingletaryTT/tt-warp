@@ -1,4 +1,3 @@
-<!-- skills/tt-crash-diagnoser.md -->
 ---
 name: tt-crash-diagnoser
 description: Use when error output, a crash, or a hang appears in the terminal from a TT workload.

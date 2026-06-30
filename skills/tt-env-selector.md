@@ -1,4 +1,3 @@
-<!-- skills/tt-env-selector.md -->
 ---
 name: tt-env-selector
 description: Use when the user asks which TT environment to activate, or when an environment error is detected in the terminal output.

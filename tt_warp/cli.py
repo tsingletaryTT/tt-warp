@@ -21,36 +21,19 @@ _TT_WARP_DIR = Path("~/.tt-warp").expanduser()
 _SKILLS_SRC = Path(__file__).parent.parent / "skills"
 _SHELL_SRC = Path(__file__).parent.parent / "shell" / "tt-warprc"
 
-# Map Warp channel binary names to their config directory names.
-# Stable and Preview share ~/.warp; OSS/Dev/Local use suffixed directories.
-_WARP_CHANNEL_BINS: dict[str, str] = {
-    "warp":         ".warp",
-    "warp-oss":     ".warp-oss",
-    "warp-dev":     ".warp-dev",
-    "warp-preview": ".warp",
-}
-
-
 def _warp_dirs() -> list[Path]:
-    """Return config dirs for every Warp channel binary found in PATH.
+    """Return the Warp config directories to write into.
 
-    Always includes ~/.warp as the baseline. Deduplicates so stable and
-    preview (which share the same dir) only appear once.
+    Every Warp channel — the Linux stable package (`warp-terminal`), the
+    open-source build (`warp`, built via `./script/run`), and preview builds —
+    reads its agent config from a single `~/.warp` directory. Warp does not
+    document per-channel suffixed dirs (`.warp-oss`, `.warp-dev`), so we write
+    to the one documented location. Returned as a list to keep the call sites
+    channel-agnostic if Warp ever splits this.
+
+    See: https://docs.warp.dev/terminal/settings/file-locations/
     """
-    home = Path.home()
-    seen: set[Path] = set()
-    dirs: list[Path] = []
-    for binary, dirname in _WARP_CHANNEL_BINS.items():
-        if shutil.which(binary):
-            d = home / dirname
-            if d not in seen:
-                seen.add(d)
-                dirs.append(d)
-    # Always include the baseline dir even if no binary was found.
-    baseline = home / ".warp"
-    if baseline not in seen:
-        dirs.append(baseline)
-    return dirs
+    return [Path.home() / ".warp"]
 
 
 def _mcp_server_command() -> str:

@@ -1,4 +1,3 @@
-<!-- skills/ttlang-workflow.md -->
 ---
 name: ttlang-workflow
 description: Use when the user is working in a tt-lang directory, mentions kernel development, or wants to write/run a custom TT kernel.

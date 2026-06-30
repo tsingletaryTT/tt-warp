@@ -1,4 +1,3 @@
-<!-- skills/tt-hardware-primer.md -->
 ---
 name: tt-hardware-primer
 description: Use when the user asks about their hardware, chip topology, device names, or "what hardware do I have".
